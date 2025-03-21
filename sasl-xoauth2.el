@@ -125,6 +125,14 @@ host, regexp for User ID, client ID and client secret (optional).
   (setq ad-return-value (cons `(auth_time . ,(current-time))
 			      ad-return-value)))
 
+(defun sasl-xoauth2-validate-response (response)
+  (cond
+   ((assq 'error response)
+    (error "Could not get oauth2 response: %s" response))
+   ((null (assq 'access_token response))
+    (error "Could not get oauth2 access token: %s" response)))
+  t)
+
 ;; Modified version of oauth2-refresh-access.  It keeps refreshed time
 ;; and updates expires_in parameter.
 (defun sasl-xoauth2-refresh-access (token)
@@ -140,6 +148,7 @@ TOKEN should be obtained with `oauth2-request-access'."
                    "&client_secret=" (oauth2-token-client-secret token)
                    "&refresh_token=" (oauth2-token-refresh-token token)
                    "&grant_type=refresh_token"))))
+    (sasl-xoauth2-validate-response response)
     (setf (oauth2-token-access-token token)
           (cdr (assq 'access_token response)))
     ;; Update authorization time.
@@ -253,6 +262,7 @@ TOKEN should be obtained with `oauth2-request-access'."
 	      (ad-disable-advice 'oauth2-make-access-request
 				 'after 'sasl-xoauth2)
 	      (ad-activate 'oauth2-make-access-request))))
+    (sasl-xoauth2-validate-response oauth2-token)
     (when (sasl-xoauth2-token-expired-p oauth2-token)
       (setq oauth2-token (sasl-xoauth2-refresh-access oauth2-token)))
     (setq access-token (oauth2-token-access-token oauth2-token))
