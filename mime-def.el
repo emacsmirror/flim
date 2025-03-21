@@ -257,31 +257,6 @@ If method is nil, this field will not be encoded."
   (mime-content-disposition-parameter content-disposition "filename"))
 
 
-;;; @ message structure
-;;;
-
-(defvar mime-message-structure nil
-  "Information about structure of message.
-Please use reference function `mime-entity-SLOT' to get value of SLOT.
-
-Following is a list of slots of the structure:
-
-node-id			node-id (list of integers)
-content-type		content-type (content-type)
-content-disposition	content-disposition (content-disposition)
-encoding		Content-Transfer-Encoding (string or nil)
-children		entities included in this entity (list of entity)
-
-If an entity includes other entities in its body, such as multipart or
-message/rfc822, `mime-entity' structures of them are included in
-`children', so the `mime-entity' structure become a tree.")
-
-(make-variable-buffer-local 'mime-message-structure)
-
-(make-obsolete-variable 'mime-message-structure
-			"should not use it." "26 May 1999")
-
-
 ;;; @ for mel-backend
 ;;;
 
