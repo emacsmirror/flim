@@ -1,4 +1,4 @@
-;;; -*-Emacs-Lisp-*-
+;;; -*- mode: emacs-lisp; lexical-binding: nil -*-
 
 ;; FLIM-MK: installer for FLIM.
 
