@@ -334,7 +334,7 @@ Default value is `phrase'."
 
 (defsubst Q-encoding-printable-char-p (chr mode)
   (and (not (memq chr '(?= ?? ?_)))
-       (<= ?\  chr)(<= chr ?~)
+       (<= ?\s chr)(<= chr ?~)
        (cond ((eq mode 'text) t)
 	     ((eq mode 'comment)
 	      (not (memq chr '(?\( ?\) ?\\))))
