@@ -284,7 +284,6 @@ of the host to connect to.  SERVICE is name of the service desired."
 	     server (if (integerp service) (format "%d" service) service)))
     (when process
       (setq connection (smtp-make-connection process server service))
-      (set-process-filter process 'smtp-process-filter)
       (setq smtp-connection-alist
 	    (cons (list buffer connection)
 		  smtp-connection-alist))
@@ -622,11 +621,6 @@ BUFFER may be a buffer or a buffer name which contains mail message."
 
 ;;; @ low level process manipulating function
 ;;;
-(defun smtp-process-filter (process output)
-  (with-current-buffer (process-buffer process)
-    (goto-char (point-max))
-    (insert output)))
-
 (put 'smtp-error 'error-message "SMTP error")
 (put 'smtp-error 'error-conditions '(smtp-error error))
 
@@ -653,9 +647,9 @@ BUFFER may be a buffer or a buffer name which contains mail message."
 	(when decoder
 	  (let ((string (buffer-substring bol eol)))
 	    (delete-region bol (point))
-	    (insert (funcall decoder string))
+	    (insert-before-markers (funcall decoder string))
 	    (setq eol (point))
-	    (insert "\r\n")))
+	    (insert-before-markers "\r\n")))
 	(setq smtp-read-point (point))
 	(goto-char bol)
 	(cond
@@ -678,7 +672,7 @@ BUFFER may be a buffer or a buffer name which contains mail message."
     (with-current-buffer (process-buffer process)
       (goto-char (point-max))
       (setq command (concat command "\r\n"))
-      (insert command)
+      (insert-before-markers command)
       (setq smtp-read-point (point))
       (if encoder
 	  (setq command (funcall encoder command)))
