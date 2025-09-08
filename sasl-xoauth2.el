@@ -57,7 +57,8 @@
   :group 'sasl-xoauth2)
 
 (defcustom sasl-xoauth2-refresh-token-threshold 60
-  "Refresh token if expiration limit is left less than specified seconds."
+  "Refresh token if expiration limit is left less than specified seconds.
+It has no effect when `sasl-xoauth2-handle-token-expiration' is nil."
   :type 'number
   :group 'sasl-xoauth2)
 
@@ -119,6 +120,10 @@ host, regexp for User ID, client ID and client secret (optional).
 			  (const :tag "none" nil))))
   :group 'sasl-xoauth2)
 
+(defvar sasl-xoauth2-handle-token-expiration
+  (null (assq 'request-cache (cl-struct-slot-info 'oauth2-token)))
+  "When non-nil, enable own token expiration handling.
+oauth2.el 0.18 and later can handle by itself.")
 
 ;; This advice makes oauth2.el to keep the time of getting token.
 (defadvice oauth2-make-access-request (after sasl-xoauth2 disable)
@@ -245,31 +250,40 @@ TOKEN should be obtained with `oauth2-request-access'."
 	      (unless (car info)
 		(read-string
 		 (format "Input OAuth 2.0 Redirect-URI for %s: " host)))))
-    (setq oauth2-token
-	  (let ((oauth2-token-file
-		 (expand-file-name (concat
-				    (md5 (concat
-					  client-id
-					  client-secret
-					  (sasl-client-name client)))
-				    ".plstore")
-				   sasl-xoauth2-token-directory)))
-	    (ad-enable-advice 'oauth2-make-access-request 'after 'sasl-xoauth2)
-	    (ad-activate 'oauth2-make-access-request)
-	    (prog1
+    (let ((oauth2-token-file
+	   (expand-file-name (concat
+			      (md5 (concat
+				    client-id
+				    client-secret
+				    user))
+			      ".plstore")
+			     sasl-xoauth2-token-directory)))
+      (setq oauth2-token
+	    (if (null sasl-xoauth2-handle-token-expiration)
 		(oauth2-auth-and-store
-		 auth-url token-url scope client-id client-secret redirect-uri)
-	      (ad-disable-advice 'oauth2-make-access-request
-				 'after 'sasl-xoauth2)
-	      (ad-activate 'oauth2-make-access-request))))
-    (sasl-xoauth2-validate-response
-     (oauth2-token-access-response oauth2-token))
-    (when (sasl-xoauth2-token-expired-p oauth2-token)
-      (setq oauth2-token (sasl-xoauth2-refresh-access oauth2-token)))
-    (setq access-token (oauth2-token-access-token oauth2-token))
-    (format "user=%s\001auth=Bearer %s\001\001"
-	    (sasl-client-name client)
-	    access-token)))
+		 auth-url token-url scope client-id client-secret
+		 redirect-uri nil user host)
+	      (ad-enable-advice
+	       'oauth2-make-access-request 'after 'sasl-xoauth2)
+	      (ad-activate 'oauth2-make-access-request)
+	      (prog1
+		  (oauth2-auth-and-store
+		   auth-url token-url scope client-id client-secret
+		   redirect-uri nil user host)
+		(ad-disable-advice 'oauth2-make-access-request
+				   'after 'sasl-xoauth2)
+		(ad-activate 'oauth2-make-access-request))))
+      (sasl-xoauth2-validate-response
+       (oauth2-token-access-response oauth2-token))
+      (cond
+       ((null sasl-xoauth2-handle-token-expiration)
+	(setq oauth2-token (oauth2-refresh-access oauth2-token host)))
+       ((sasl-xoauth2-token-expired-p oauth2-token)
+	(setq oauth2-token (sasl-xoauth2-refresh-access oauth2-token))))
+      (setq access-token (oauth2-token-access-token oauth2-token))
+      (format "user=%s\001auth=Bearer %s\001\001"
+	      (sasl-client-name client)
+	      access-token))))
 
 (put 'sasl-xoauth2 'sasl-mechanism
      (sasl-make-mechanism "XOAUTH2" sasl-xoauth2-steps))
