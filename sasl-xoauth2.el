@@ -52,7 +52,8 @@
 
 (defcustom sasl-xoauth2-token-directory
   (expand-file-name "sasl-xoauth2" user-emacs-directory)
-  "Directory name to store OAuth 2.0 tokens."
+  "Directory name to store OAuth 2.0 tokens.
+It has no effect when `sasl-xoauth2-share-token-file' is non-nil."
   :type 'directory
   :group 'sasl-xoauth2)
 
@@ -118,6 +119,13 @@ host, regexp for User ID, client ID and client secret (optional).
 		  (choice :tag "Client Secret"
 			  string
 			  (const :tag "none" nil))))
+  :group 'sasl-xoauth2)
+
+(defcustom sasl-xoauth2-share-token-file
+  nil
+  "When non-nil, store oauth2 tokens into default plstore specified by
+`oauth2-token-file'.  Must be nil on oauth2.el 0.17 and earlier."
+  :type 'boolean
   :group 'sasl-xoauth2)
 
 (defvar sasl-xoauth2-handle-token-expiration
@@ -251,13 +259,15 @@ TOKEN should be obtained with `oauth2-request-access'."
 		(read-string
 		 (format "Input OAuth 2.0 Redirect-URI for %s: " host)))))
     (let ((oauth2-token-file
-	   (expand-file-name (concat
-			      (md5 (concat
-				    client-id
-				    client-secret
-				    user))
-			      ".plstore")
-			     sasl-xoauth2-token-directory)))
+	   (if sasl-xoauth2-share-token-file
+	       oauth2-token-file
+	     (expand-file-name (concat
+				(md5 (concat
+				      client-id
+				      client-secret
+				      user))
+				".plstore")
+			       sasl-xoauth2-token-directory))))
       (setq oauth2-token
 	    (if (null sasl-xoauth2-handle-token-expiration)
 		(oauth2-auth-and-store
