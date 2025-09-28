@@ -82,6 +82,10 @@
 			  ((write "(error . \"")))
 		  (r2 = 5)
 		  (loop
+		   (if (r0 == ?\")
+		       (write ?\\)
+		     (if (r0 == ?\\)
+			 (write ?\\)))
 		   (write-read-repeat r0))))
 	   (enc (lambda (name tag)
 		  `((if (r2 == 1) ((write "\")")))
