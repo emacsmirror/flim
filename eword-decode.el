@@ -533,8 +533,11 @@ such as a version of Net$cape)."
 		      (message "Invalid encoding: %s" encoding)
 		      nil))
 	       (condition-case err
-		   (setq text
-			 (encoded-text-decode-string (nth 3 word) encoding))
+		   (prog1 (setq text (encoded-text-decode-string
+				      (nth 3 word) encoding))
+		     (dotimes (i (length text))
+		       (when (eq (aref text i) ?\n)
+			 (aset text i ?\s))))
 		 (error
 		  (message "%s" (error-message-string err))
 		  nil)))
