@@ -509,6 +509,11 @@ encoded-word, concatenate them, and decode it by charset.  Otherwise,
 the decoder will fully decode each encoded-word before concatenating
 them.")
 
+(defvar eword-decode-decode-safely t
+  "*Non-nil means decoder decodes encoded-words safely. Encoded LF is
+ converted to SPACE and quote decoded words when it is not quoted and
+ contain non-atom special chars")
+
 (defun eword-decode-encoded-words (words must-unfold)
   "Decode successive encoded-words in WORDS and return a decoded string.
 Each element of WORDS looks like (CHARSET LANGUAGE ENCODING ENCODED-TEXT
@@ -535,9 +540,10 @@ such as a version of Net$cape)."
 	       (condition-case err
 		   (prog1 (setq text (encoded-text-decode-string
 				      (nth 3 word) encoding))
-		     (dotimes (i (length text))
-		       (when (eq (aref text i) ?\n)
-			 (aset text i ?\s))))
+		     (when eword-decode-decode-safely
+		       (dotimes (i (length text))
+			 (when (eq (aref text i) ?\n)
+			   (aset text i ?\s)))))
 		 (error
 		  (message "%s" (error-message-string err))
 		  nil)))
@@ -709,7 +715,8 @@ be the result.")
       (setq words (eword-decode-encoded-words (nreverse words) must-unfold))
       (cons
        (cons 'atom
-	     (if (and (string-match (eval-when-compile
+	     (if (and eword-decode-decode-safely
+		      (string-match (eval-when-compile
 				      (concat "[" std11-special-char-list "]"))
 				    words)
 		      (null (eq (cdr (std11-analyze-quoted-string words 0))
